@@ -178,6 +178,12 @@ class ViewBuilder implements TemplateAstVisitor, LocalResolver {
 
     let viewFlags = ViewFlags.None;
     if (!this.parent && this.component.changeDetection === ChangeDetectionStrategy.OnPush) {
+      console.log('OP', ViewFlags.OnPush);
+      viewFlags |= ViewFlags.OnPush;
+    }
+    if (!this.parent && this.component.changeDetection === ChangeDetectionStrategy.Reactivity) {
+      console.log('Reactivity', ViewFlags.Reactivity);
+      viewFlags |= ViewFlags.Reactivity;
       viewFlags |= ViewFlags.OnPush;
     }
     const viewFactory = new o.DeclareFunctionStmt(

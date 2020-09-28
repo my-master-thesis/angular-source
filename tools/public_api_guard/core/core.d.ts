@@ -65,7 +65,8 @@ export interface AttributeDecorator {
 
 export declare enum ChangeDetectionStrategy {
     OnPush = 0,
-    Default = 1
+    Default = 1,
+    Other = 2
 }
 
 export declare abstract class ChangeDetectorRef {

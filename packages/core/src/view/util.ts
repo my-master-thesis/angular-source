@@ -110,6 +110,7 @@ export function markParentViewsForCheck(view: ViewData) {
   let currView: ViewData|null = view;
   while (currView) {
     if (currView.def.flags & ViewFlags.OnPush) {
+      console.log('OP utils');
       currView.state |= ViewState.ChecksEnabled;
     }
     currView = currView.viewContainerParent || currView.parent;

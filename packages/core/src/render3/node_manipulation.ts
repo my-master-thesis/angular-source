@@ -272,6 +272,7 @@ function trackMovedView(declarationContainer: LContainer, lView: LView) {
   const insertedComponentIsOnPush =
       (insertedComponentLView[FLAGS] & LViewFlags.CheckAlways) !== LViewFlags.CheckAlways;
   if (insertedComponentIsOnPush) {
+    console.log('insertedComponentIsOnPush', insertedComponentIsOnPush);
     const declaredComponentLView = lView[DECLARATION_COMPONENT_VIEW];
     ngDevMode && assertDefined(declaredComponentLView, 'Missing declaredComponentLView');
     if (declaredComponentLView !== insertedComponentLView) {

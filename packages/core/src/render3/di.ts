@@ -19,17 +19,49 @@ import {assertDirectiveDef} from './assert';
 import {getFactoryDef} from './definition';
 import {NG_ELEMENT_ID, NG_FACTORY_DEF} from './fields';
 import {registerPreOrderHooks} from './hooks';
-import {DirectiveDef, FactoryFn} from './interfaces/definition';
-import {NO_PARENT_INJECTOR, NodeInjectorFactory, PARENT_INJECTOR, RelativeInjectorLocation, RelativeInjectorLocationFlags, TNODE, isFactory} from './interfaces/injector';
-import {AttributeMarker, TContainerNode, TDirectiveHostNode, TElementContainerNode, TElementNode, TNode, TNodeProviderIndexes, TNodeType} from './interfaces/node';
+import {ComponentDef, DirectiveDef, FactoryFn} from './interfaces/definition';
+import {
+  isFactory,
+  NO_PARENT_INJECTOR,
+  NodeInjectorFactory,
+  PARENT_INJECTOR,
+  RelativeInjectorLocation,
+  RelativeInjectorLocationFlags,
+  TNODE
+} from './interfaces/injector';
+import {
+  AttributeMarker,
+  TContainerNode,
+  TDirectiveHostNode,
+  TElementContainerNode,
+  TElementNode,
+  TNode,
+  TNodeProviderIndexes,
+  TNodeType
+} from './interfaces/node';
 import {isComponentDef, isComponentHost} from './interfaces/type_checks';
-import {DECLARATION_COMPONENT_VIEW, DECLARATION_VIEW, INJECTOR, LView, TData, TVIEW, TView, T_HOST} from './interfaces/view';
+import {
+  DECLARATION_COMPONENT_VIEW,
+  DECLARATION_VIEW,
+  FLAGS,
+  HOST,
+  INJECTOR,
+  LView, LViewFlags,
+  T_HOST,
+  TData,
+  TVIEW,
+  TView
+} from './interfaces/view';
 import {assertNodeOfPossibleTypes} from './node_assert';
 import {enterDI, leaveDI} from './state';
 import {isNameOnlyAttributeMarker} from './util/attrs_utils';
 import {getParentInjectorIndex, getParentInjectorView, hasParentInjector} from './util/injector_utils';
 import {stringifyForError} from './util/misc_utils';
-
+import {ChangeDetectionStrategy} from '../core';
+import {markDirty} from "./instructions/change_detection";
+import {MONKEY_PATCH_KEY_NAME, PROXY_INDICATOR} from "./interfaces/context";
+import {markViewDirty} from "./instructions/shared";
+import {getComponentViewByInstance} from "./context_discovery";
 
 
 /**
@@ -519,6 +551,21 @@ export function locateDirectiveOrProvider<T>(
   return null;
 }
 
+export function addReactivity(value: any, handler: any): any {
+  // check if value is a not null object without proxy set
+  if (typeof value === 'object' && !!value && !value[PROXY_INDICATOR]) {
+    for (const [key, item] of Object.entries(value)) {
+      if (typeof item === 'object') {
+        value[key] = addReactivity(item, handler);
+        console.log(`${key}: ${item}`);
+      }
+    }
+    return new Proxy(value, handler);
+  }
+  console.log('return original due to it is already Proxy or it is not an object', value);
+  return value;
+}
+
 /**
 * Retrieve or instantiate the injectable from the `LView` at particular `index`.
 *
@@ -544,6 +591,46 @@ export function getNodeInjectable(
     enterDI(lView, tNode);
     try {
       value = lView[index] = factory.factory(undefined, tData, lView, tNode);
+      console.log('Component created 1', value.constructor.name, lView[HOST], lView[FLAGS]);
+      const def = tView.data[index] as DirectiveDef<any>;
+      const isComponent = isComponentDef(def);
+
+      if (isComponent) {
+        console.log((def as ComponentDef<any>).changeDetection);
+        if ((def as ComponentDef<any>).changeDetection === ChangeDetectionStrategy.Reactivity) {
+          console.log(Object.keys(value));
+          const handler = {  // Override data to have a proxy in the middle
+            get(obj: any, key: any) {
+              console.log('get ', key);
+              if (key !== PROXY_INDICATOR) {
+                return obj[key]; // call original data
+              }
+              return true;
+            },
+            set(obj: any, key: any, newVal: any) {
+              console.log('start set ', key, lView[FLAGS], obj[MONKEY_PATCH_KEY_NAME] ? obj[MONKEY_PATCH_KEY_NAME][FLAGS] : null);
+              if (key !== MONKEY_PATCH_KEY_NAME) {
+                if (key === PROXY_INDICATOR) {
+                  throw Error(PROXY_INDICATOR + ' is reserved and can not be set. ');
+                }
+                if (typeof newVal === 'object') {
+                  console.log('new val is object');
+                  obj[key] = addReactivity(newVal, handler);
+                } else {
+                  obj[key] = newVal; // Set original data to new value
+                }
+                // markDirty(value);
+                void markViewDirty(getComponentViewByInstance(value));
+              } else {
+                obj[key] = newVal; // Set original data to new value
+              }
+              console.log(lView[FLAGS], value[MONKEY_PATCH_KEY_NAME][FLAGS]);
+              return true;
+            }
+          };
+          value = lView[index] = addReactivity(value, handler);
+        }
+      }
       // This code path is hit for both directives and providers.
       // For perf reasons, we want to avoid searching for hooks on providers.
       // It does no harm to try (the hooks just won't exist), but the extra
@@ -552,6 +639,7 @@ export function getNodeInjectable(
       // tNode. If it's not, we know it's a provider and skip hook registration.
       if (tView.firstCreatePass && index >= tNode.directiveStart) {
         ngDevMode && assertDirectiveDef(tData[index]);
+        console.log('Component created 2');
         registerPreOrderHooks(index, tData[index] as DirectiveDef<any>, tView);
       }
     } finally {

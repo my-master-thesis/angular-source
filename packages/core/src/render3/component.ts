@@ -8,7 +8,7 @@
 
 // We are temporarily importing the existing viewEngine from core so we can be sure we are
 // correctly implementing its interfaces for backwards compatibility.
-import {Type} from '../core';
+import {ChangeDetectionStrategy, Type} from '../core';
 import {Injector} from '../di/injector';
 import {Sanitizer} from '../sanitization/sanitizer';
 import {assertDataInRange} from '../util/assert';
@@ -16,12 +16,37 @@ import {assertComponentType} from './assert';
 import {getComponentDef} from './definition';
 import {diPublicInInjector, getOrCreateNodeInjectorForNode} from './di';
 import {registerPostOrderHooks} from './hooks';
-import {CLEAN_PROMISE, addHostBindingsToExpandoInstructions, addToViewTree, createLView, createTView, getOrCreateTComponentView, getOrCreateTNode, growHostVarsSpace, initTNodeFlags, instantiateRootComponent, invokeHostBindingsInCreationMode, locateHostElement, markAsComponentHost, refreshView, renderView} from './instructions/shared';
+import {
+  addHostBindingsToExpandoInstructions,
+  addToViewTree,
+  CLEAN_PROMISE,
+  createLView,
+  createTView,
+  getOrCreateTComponentView,
+  getOrCreateTNode,
+  growHostVarsSpace,
+  initTNodeFlags,
+  instantiateRootComponent,
+  invokeHostBindingsInCreationMode,
+  locateHostElement,
+  markAsComponentHost,
+  refreshView,
+  renderView
+} from './instructions/shared';
 import {ComponentDef, ComponentType, RenderFlags} from './interfaces/definition';
 import {TElementNode, TNode, TNodeType} from './interfaces/node';
 import {PlayerHandler} from './interfaces/player';
-import {RElement, Renderer3, RendererFactory3, domRendererFactory3} from './interfaces/renderer';
-import {CONTEXT, HEADER_OFFSET, LView, LViewFlags, RootContext, RootContextFlags, TVIEW, TViewType} from './interfaces/view';
+import {domRendererFactory3, RElement, Renderer3, RendererFactory3} from './interfaces/renderer';
+import {
+  CONTEXT,
+  HEADER_OFFSET,
+  LView,
+  LViewFlags,
+  RootContext,
+  RootContextFlags,
+  TVIEW,
+  TViewType
+} from './interfaces/view';
 import {writeDirectClass, writeDirectStyle} from './node_manipulation';
 import {enterView, getPreviousOrParentTNode, leaveView, setSelectedIndex} from './state';
 import {computeStaticStyling} from './styling/static_styling';
@@ -30,7 +55,6 @@ import {publishDefaultGlobalUtils} from './util/global_utils';
 import {defaultScheduler, stringifyForError} from './util/misc_utils';
 import {getRootContext} from './util/view_traversal_utils';
 import {readPatchedLView} from './util/view_utils';
-
 
 
 /** Options that control how the component should be bootstrapped. */
@@ -123,8 +147,9 @@ export function renderComponent<T>(
   const hostRenderer = rendererFactory.createRenderer(null, null);
   const hostRNode =
       locateHostElement(hostRenderer, opts.host || componentTag, componentDef.encapsulation);
-  const rootFlags = componentDef.onPush ? LViewFlags.Dirty | LViewFlags.IsRoot :
-                                          LViewFlags.CheckAlways | LViewFlags.IsRoot;
+  console.log(componentDef.onPush, componentDef.changeDetection, componentDef, LViewFlags.Dirty);
+  const rootFlags = componentDef.changeDetection !== ChangeDetectionStrategy.Default ? LViewFlags.Dirty | LViewFlags.IsRoot :
+                                                                                       LViewFlags.CheckAlways | LViewFlags.IsRoot;
   const rootContext = createRootContext(opts.scheduler, opts.playerHandler);
 
   const renderer = rendererFactory.createRenderer(hostRNode, componentDef);
@@ -192,7 +217,7 @@ export function createRootComponentView(
   const viewRenderer = rendererFactory.createRenderer(rNode, def);
   const componentView = createLView(
       rootView, getOrCreateTComponentView(def), null,
-      def.onPush ? LViewFlags.Dirty : LViewFlags.CheckAlways, rootView[HEADER_OFFSET], tNode,
+      def.changeDetection !== ChangeDetectionStrategy.Default ? LViewFlags.Dirty : LViewFlags.CheckAlways, rootView[HEADER_OFFSET], tNode,
       rendererFactory, viewRenderer, sanitizer);
 
   if (tView.firstCreatePass) {

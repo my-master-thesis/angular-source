@@ -11,7 +11,10 @@ import {InjectionToken} from '../di/injection_token';
 import {Injector} from '../di/injector';
 import {InjectFlags} from '../di/interface/injector';
 import {Type} from '../interface/type';
-import {ComponentFactory as viewEngine_ComponentFactory, ComponentRef as viewEngine_ComponentRef} from '../linker/component_factory';
+import {
+  ComponentFactory as viewEngine_ComponentFactory,
+  ComponentRef as viewEngine_ComponentRef
+} from '../linker/component_factory';
 import {ComponentFactoryResolver as viewEngine_ComponentFactoryResolver} from '../linker/component_factory_resolver';
 import {ElementRef as viewEngine_ElementRef} from '../linker/element_ref';
 import {NgModuleRef as viewEngine_NgModuleRef} from '../linker/ng_module_factory';
@@ -21,13 +24,20 @@ import {VERSION} from '../version';
 import {NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR} from '../view/provider';
 
 import {assertComponentType} from './assert';
-import {LifecycleHooksFeature, createRootComponent, createRootComponentView, createRootContext} from './component';
+import {createRootComponent, createRootComponentView, createRootContext, LifecycleHooksFeature} from './component';
 import {getComponentDef} from './definition';
 import {NodeInjector} from './di';
-import {assignTViewNodeToLView, createLView, createTView, elementCreate, locateHostElement, renderView} from './instructions/shared';
+import {
+  assignTViewNodeToLView,
+  createLView,
+  createTView,
+  elementCreate,
+  locateHostElement,
+  renderView
+} from './instructions/shared';
 import {ComponentDef} from './interfaces/definition';
 import {TContainerNode, TElementContainerNode, TElementNode} from './interfaces/node';
-import {RNode, RendererFactory3, domRendererFactory3} from './interfaces/renderer';
+import {domRendererFactory3, RendererFactory3, RNode} from './interfaces/renderer';
 import {LView, LViewFlags, TVIEW, TViewType} from './interfaces/view';
 import {MATH_ML_NAMESPACE, SVG_NAMESPACE} from './namespaces';
 import {writeDirectClass} from './node_manipulation';
@@ -38,6 +48,7 @@ import {defaultScheduler} from './util/misc_utils';
 import {getTNode} from './util/view_utils';
 import {createElementRef} from './view_engine_compatibility';
 import {RootViewRef, ViewRef} from './view_ref';
+import {ChangeDetectionStrategy} from '../core';
 
 export class ComponentFactoryResolver extends viewEngine_ComponentFactoryResolver {
   /**
@@ -150,8 +161,8 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
             elementName, rendererFactory.createRenderer(null, this.componentDef),
             getNamespace(elementName));
 
-    const rootFlags = this.componentDef.onPush ? LViewFlags.Dirty | LViewFlags.IsRoot :
-                                                 LViewFlags.CheckAlways | LViewFlags.IsRoot;
+    const rootFlags = this.componentDef.changeDetection !== ChangeDetectionStrategy.Default ? LViewFlags.Dirty | LViewFlags.IsRoot :
+                                                                                              LViewFlags.CheckAlways | LViewFlags.IsRoot;
 
     // Check whether this Component needs to be isolated from other components, i.e. whether it
     // should be placed into its own (empty) root context or existing root context should be used.
