@@ -283,6 +283,11 @@ export function ɵɵdefineComponent<T>(componentDefinition: {
   changeDetection?: ChangeDetectionStrategy;
 
   /**
+   * When reactivity set, takes effect also on this properties of component
+   */
+  reactiveProperties?: string[];
+
+  /**
    * Registry of directives and components that may be found in this component's view.
    *
    * The property is either an array of `DirectiveDef`s or a function which returns the array of
@@ -337,6 +342,7 @@ export function ɵɵdefineComponent<T>(componentDefinition: {
     onDestroy: typePrototype.ngOnDestroy || null,
     onPush: componentDefinition.changeDetection === ChangeDetectionStrategy.OnPush || componentDefinition.changeDetection === ChangeDetectionStrategy.Reactivity,
     changeDetection: typeof componentDefinition.changeDetection === 'number' ? componentDefinition.changeDetection : ChangeDetectionStrategy.Default,
+    reactiveProperties: !!componentDefinition.reactiveProperties ? componentDefinition.reactiveProperties : [],
     directiveDefs: null !,  // assigned in noSideEffects
     pipeDefs: null !,       // assigned in noSideEffects
     selectors: componentDefinition.selectors || EMPTY_ARRAY,

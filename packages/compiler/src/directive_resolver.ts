@@ -148,6 +148,7 @@ export class DirectiveResolver {
         moduleId: comp.moduleId,
         queries: mergedQueries,
         changeDetection: comp.changeDetection,
+        reactiveProperties: comp.reactiveProperties,
         providers: comp.providers,
         viewProviders: comp.viewProviders,
         entryComponents: comp.entryComponents,

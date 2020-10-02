@@ -128,8 +128,12 @@ export function mergeSourceMaps(
   }
   const oldMapConsumer = new SourceMapConsumer(oldMap);
   const newMapConsumer = new SourceMapConsumer(newMap);
-  const mergedMapGenerator = SourceMapGenerator.fromSourceMap(newMapConsumer);
-  mergedMapGenerator.applySourceMap(oldMapConsumer);
-  const merged = fromJSON(mergedMapGenerator.toString());
-  return merged;
+  try {
+    const mergedMapGenerator = SourceMapGenerator.fromSourceMap(newMapConsumer);
+    mergedMapGenerator.applySourceMap(oldMapConsumer);
+    const merged = fromJSON(mergedMapGenerator.toString());
+    return merged;
+  } catch (e) {
+    return fromObject(newMap);
+  }
 }

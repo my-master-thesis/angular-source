@@ -25,6 +25,7 @@ export function compileDirectiveMetadataCreate(
     selector: noUndefined(selector),
     exportAs: noUndefined(exportAs),
     changeDetection: null,
+    reactiveProperties: [],
     inputs: inputs || [],
     outputs: outputs || [],
     host: host || {},

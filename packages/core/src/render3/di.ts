@@ -566,6 +566,39 @@ export function addReactivity(value: any, handler: any): any {
   return value;
 }
 
+function addReactivityWatcher(value: any, handler: any, reactiveProperties: Array<string>) {
+  if (!value[PROXY_INDICATOR]) {
+    for (const [key, item] of Object.entries(value)) {
+      if (reactiveProperties.includes(key)) {
+        value[key] = addReactivity(item, handler);
+        console.log(`reactivity for ${key}: ${item}`);
+      }
+    }
+    const watcherHandler = {
+      get(obj: any, key: any) {
+        return obj[key]; // call original data
+      },
+      set(obj: any, key: any, newVal: any) {
+        console.log('start class set ', key);
+        if (reactiveProperties.includes(key) || key === 'data' && key !== MONKEY_PATCH_KEY_NAME) {
+          if (typeof newVal !== 'object' || !value) {
+            obj[key] = newVal;
+            void markViewDirty(getComponentViewByInstance(value));
+          } else {
+            obj[key] = addReactivity(newVal, handler);
+          }
+        } else {
+          obj[key] = newVal;
+        }
+        return true;
+      }
+    };
+    return value = new Proxy(value, watcherHandler);
+  }
+  console.log('return original due to it is already Proxy', value);
+  return value;
+}
+
 /**
 * Retrieve or instantiate the injectable from the `LView` at particular `index`.
 *
@@ -628,7 +661,8 @@ export function getNodeInjectable(
               return true;
             }
           };
-          value = lView[index] = addReactivity(value, handler);
+          value['data'] = addReactivity(value['data'], handler);
+          value = lView[index] = addReactivityWatcher(value, handler, (def as ComponentDef<any>).reactiveProperties);
         }
       }
       // This code path is hit for both directives and providers.

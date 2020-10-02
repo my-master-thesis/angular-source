@@ -198,6 +198,8 @@ export interface R3ComponentMetadata extends R3DirectiveMetadata {
    * Strategy used for detecting changes in the component.
    */
   changeDetection?: ChangeDetectionStrategy;
+
+  reactiveProperties?: string[]|null;
 }
 
 /**

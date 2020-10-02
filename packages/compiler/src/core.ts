@@ -61,6 +61,7 @@ export const createDirective =
 
 export interface Component extends Directive {
   changeDetection?: ChangeDetectionStrategy;
+  reactiveProperties?: string[];
   viewProviders?: Provider[];
   moduleId?: string;
   templateUrl?: string;

@@ -156,6 +156,7 @@ export interface R3ComponentMetadataFacade extends R3DirectiveMetadataFacade {
   viewProviders: Provider[]|null;
   interpolation?: [string, string];
   changeDetection?: ChangeDetectionStrategy;
+  reactiveProperties?: string[];
 }
 
 export interface R3FactoryDefMetadataFacade {

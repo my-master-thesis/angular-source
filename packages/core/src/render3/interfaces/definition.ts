@@ -324,6 +324,9 @@ export interface ComponentDef<T> extends DirectiveDef<T> {
   /** Component's ChangeDetectionStrategy */
   readonly changeDetection: ChangeDetectionStrategy;
 
+  /** Component's reactive properties */
+  readonly reactiveProperties: Array<string>;
+
   /**
    * Registry of directives and components that may be found in this view.
    *

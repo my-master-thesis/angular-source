@@ -277,6 +277,12 @@ export class ComponentDecoratorHandler implements
         }
       }
     }
+
+    let reactiveProperties: string[]|undefined|null;
+    if (component.has('reactiveProperties')) {
+      reactiveProperties = parseFieldArrayValue(component, 'reactiveProperties', this.evaluator);
+    }
+
     if (component.has('styles')) {
       const litStyles = parseFieldArrayValue(component, 'styles', this.evaluator);
       if (litStyles !== null) {
@@ -317,6 +323,7 @@ export class ComponentDecoratorHandler implements
           encapsulation,
           interpolation: template.interpolation,
           styles: styles || [],
+          reactiveProperties: reactiveProperties,
 
           // These will be replaced during the compilation step, after all `NgModule`s have been
           // analyzed and the full compilation scope for the component can be realized.

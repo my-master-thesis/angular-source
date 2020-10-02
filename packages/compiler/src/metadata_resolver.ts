@@ -198,6 +198,7 @@ export class CompileMetadataResolver {
       }),
       exportAs: null,
       changeDetection: ChangeDetectionStrategy.Default,
+      reactiveProperties: [],
       inputs: [],
       outputs: [],
       host: {},
@@ -231,6 +232,7 @@ export class CompileMetadataResolver {
         selector: metadata.selector,
         exportAs: metadata.exportAs,
         changeDetection: metadata.changeDetection,
+        reactiveProperties: metadata.reactiveProperties,
         inputs: metadata.inputs,
         outputs: metadata.outputs,
         hostListeners: metadata.hostListeners,
@@ -324,6 +326,7 @@ export class CompileMetadataResolver {
     }
 
     let changeDetectionStrategy: ChangeDetectionStrategy = null !;
+    let reactiveProperties: string[] = [];
     let viewProviders: cpl.CompileProviderMetadata[] = [];
     let entryComponentMetadata: cpl.CompileEntryComponentMetadata[] = [];
     let selector = dirMeta.selector;
@@ -332,6 +335,9 @@ export class CompileMetadataResolver {
       // Component
       const compMeta = dirMeta as Component;
       changeDetectionStrategy = compMeta.changeDetection !;
+      if (compMeta.reactiveProperties) {
+        reactiveProperties = compMeta.reactiveProperties;
+      }
       if (compMeta.viewProviders) {
         viewProviders = this._getProvidersMetadata(
             compMeta.viewProviders, entryComponentMetadata,
@@ -373,6 +379,7 @@ export class CompileMetadataResolver {
       type: this._getTypeMetadata(directiveType),
       template: nonNormalizedTemplateMetadata,
       changeDetection: changeDetectionStrategy,
+      reactiveProperties: reactiveProperties,
       inputs: dirMeta.inputs || [],
       outputs: dirMeta.outputs || [],
       host: dirMeta.host || {},
