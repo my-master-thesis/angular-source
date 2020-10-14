@@ -147,7 +147,7 @@ export function renderComponent<T>(
   const hostRenderer = rendererFactory.createRenderer(null, null);
   const hostRNode =
       locateHostElement(hostRenderer, opts.host || componentTag, componentDef.encapsulation);
-  console.log(componentDef.onPush, componentDef.changeDetection, componentDef, LViewFlags.Dirty);
+  // console.log(componentDef.onPush, componentDef.changeDetection, componentDef, LViewFlags.Dirty);
   const rootFlags = componentDef.changeDetection !== ChangeDetectionStrategy.Default ? LViewFlags.Dirty | LViewFlags.IsRoot :
                                                                                        LViewFlags.CheckAlways | LViewFlags.IsRoot;
   const rootContext = createRootContext(opts.scheduler, opts.playerHandler);

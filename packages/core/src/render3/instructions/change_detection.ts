@@ -54,7 +54,9 @@ export function markDirty(component: {}): void {
  * be changed when calling `renderComponent` and providing the `scheduler` option.
  */
 export function tick<T>(component: T): void {
+  console.time('tick');
   const rootView = getRootView(component);
   const rootContext = rootView[CONTEXT] as RootContext;
   tickRootContext(rootContext);
+  console.timeEnd('tick');
 }

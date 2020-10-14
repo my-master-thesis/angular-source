@@ -24,7 +24,16 @@
     },
     "rootDir": ".",
     "inlineSourceMap": true,
-    "lib": ["es5", "dom", "es2015.promise", "es2015.collection", "es2015.iterable", "es2015.core", "es2017.object"],
+    "lib": [
+      "es5",
+      "dom",
+      "es2015.promise",
+      "es2015.collection",
+      "es2015.iterable",
+      "es2015.core",
+      "es2017.object",
+      "es2015.proxy"
+    ],
     "skipDefaultLibCheck": true,
     "skipLibCheck": true,
     "target": "es5",

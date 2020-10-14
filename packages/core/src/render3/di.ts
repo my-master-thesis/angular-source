@@ -59,7 +59,12 @@ import {getParentInjectorIndex, getParentInjectorView, hasParentInjector} from '
 import {stringifyForError} from './util/misc_utils';
 import {ChangeDetectionStrategy} from '../core';
 import {markDirty} from "./instructions/change_detection";
-import {MONKEY_PATCH_KEY_NAME, PROXY_INDICATOR} from "./interfaces/context";
+import {
+  MONKEY_PATCH_KEY_NAME,
+  PROXY_INDICATOR,
+  REMOVE_PROXY_INDICATOR,
+  SET_PROXY_INDICATOR
+} from "./interfaces/context";
 import {markViewDirty} from "./instructions/shared";
 import {getComponentViewByInstance} from "./context_discovery";
 
@@ -551,41 +556,122 @@ export function locateDirectiveOrProvider<T>(
   return null;
 }
 
-export function addReactivity(value: any, handler: any): any {
-  // check if value is a not null object without proxy set
-  if (typeof value === 'object' && !!value && !value[PROXY_INDICATOR]) {
+function setProxyIndicator(value: any, components: any[]) {
+  Object.defineProperty(value, PROXY_INDICATOR, {
+    enumerable: false,
+    writable: true
+  });
+  value[PROXY_INDICATOR] = components;
+}
+
+export function addReactivity(value: any, components: any[]): any {
+  // check if value is not null object
+  if (typeof value === 'object' && !!value) {
+    // walk through all object properties and add them reactivity if they are not null objects
     for (const [key, item] of Object.entries(value)) {
-      if (typeof item === 'object') {
-        value[key] = addReactivity(item, handler);
-        console.log(`${key}: ${item}`);
+      if (typeof item === 'object' && item) {
+        value[key] = addReactivity(item, [...components]);
       }
     }
-    return new Proxy(value, handler);
+    if (!value[PROXY_INDICATOR]) {
+      setProxyIndicator(value, components);
+      return new Proxy(value, handler);
+    } else {
+      value[SET_PROXY_INDICATOR] = components;
+      console.log('add reactivity to existing Proxy', value, components);
+    }
   }
-  console.log('return original due to it is already Proxy or it is not an object', value);
+  // console.log('return original due to it is not an object', value);
   return value;
 }
 
-function addReactivityWatcher(value: any, handler: any, reactiveProperties: Array<string>) {
-  if (!value[PROXY_INDICATOR]) {
-    for (const [key, item] of Object.entries(value)) {
-      if (reactiveProperties.includes(key)) {
-        value[key] = addReactivity(item, handler);
-        console.log(`reactivity for ${key}: ${item}`);
-      }
+function markComponentDirty(component: any) {
+  void markViewDirty(getComponentViewByInstance(component));
+}
+
+// Proxy handler for ractivity
+const handler: ProxyHandler<any> = {  // Override data to have a proxy in the middle
+  get(obj: any, key: PropertyKey) {
+    // console.log('get ', key);
+    // prevent getting reserved keys
+    if (key === SET_PROXY_INDICATOR || key === REMOVE_PROXY_INDICATOR) {
+      throw Error(SET_PROXY_INDICATOR + ' and ' + REMOVE_PROXY_INDICATOR + ' are reserved and can not be gotten.');
     }
+    return obj[key]; // call original data
+  },
+  set(obj: any, key: PropertyKey, newVal: any): boolean {
+    // console.log('start set ', key, obj[MONKEY_PATCH_KEY_NAME] ? obj[MONKEY_PATCH_KEY_NAME][FLAGS] : null);
+    // skip if setting Angular params
+    if (key !== MONKEY_PATCH_KEY_NAME) {
+      // set empty components array to Proxy if not exists
+      if (!obj[PROXY_INDICATOR]) {
+        setProxyIndicator(obj, []);
+      }
+      let markDirty = false;
+
+      if (key === PROXY_INDICATOR) {
+        throw Error(PROXY_INDICATOR + ' is reserved and can not be set.');
+      } else if (key === SET_PROXY_INDICATOR) { // if we setting new components to existing reactivity
+        if (Array.isArray(newVal)) { // input param must be array
+          newVal.forEach(component => { // walk through all components and check if they are not already added for watching
+            if (! obj[PROXY_INDICATOR].includes(component)) {
+              obj[PROXY_INDICATOR].push(component);
+              console.log('add reactivity', key, component);
+            } else {
+              console.log('wont add duplicated reactivity', key, component, obj[PROXY_INDICATOR]);
+            }
+          });
+        } else {
+          throw Error(PROXY_INDICATOR + ' must be an array.');
+        }
+        return true;
+      } else if (key === REMOVE_PROXY_INDICATOR) { // if we remove reactivity from component
+        const index = obj[PROXY_INDICATOR].indexOf(newVal);
+        if (index >= 0) {
+          obj[PROXY_INDICATOR].splice(index, 1);
+          console.log('remove reactivity', key, newVal);
+        } else {
+          console.log('cannot remove not existed reactivity', key, newVal, obj[PROXY_INDICATOR]);
+        }
+        return true;
+      } else if (typeof newVal === 'object' && !!newVal) { // if new value is an object than add reactivity to its props
+        console.log('new val is object');
+        obj[key] = addReactivity(newVal, [...obj[PROXY_INDICATOR]]);
+        markDirty = true;
+      } else { // else just set the value
+        obj[key] = newVal; // Set original data to new value
+        markDirty = true;
+      }
+      if (markDirty) {
+        // mark all components as dirty
+        obj[PROXY_INDICATOR].forEach((component: any) => {
+          // markDirty(component);
+          markComponentDirty(component);
+        });
+      }
+    } else {
+      obj[key] = newVal; // Set original data to new value
+    }
+    return true;
+  }
+};
+
+function addReactivityWatcher(value: any, reactiveProperties: Array<string>) {
+  if (!value[PROXY_INDICATOR]) {
     const watcherHandler = {
       get(obj: any, key: any) {
         return obj[key]; // call original data
       },
       set(obj: any, key: any, newVal: any) {
-        console.log('start class set ', key);
-        if (reactiveProperties.includes(key) || key === 'data' && key !== MONKEY_PATCH_KEY_NAME) {
+        // console.log('start class set ', key);
+        if (reactiveProperties.includes(key) && key !== MONKEY_PATCH_KEY_NAME) {
           if (typeof newVal !== 'object' || !value) {
             obj[key] = newVal;
-            void markViewDirty(getComponentViewByInstance(value));
+            if (value && value[MONKEY_PATCH_KEY_NAME]) {
+              markComponentDirty(value);
+            }
           } else {
-            obj[key] = addReactivity(newVal, handler);
+            obj[key] = addReactivity(newVal, [value]);
           }
         } else {
           obj[key] = newVal;
@@ -593,7 +679,17 @@ function addReactivityWatcher(value: any, handler: any, reactiveProperties: Arra
         return true;
       }
     };
-    return value = new Proxy(value, watcherHandler);
+    value = new Proxy(value, watcherHandler);
+
+    // must be after value, so we have right proxy component
+    for (const [key, item] of Object.entries(value)) {
+      if (reactiveProperties.includes(key)) {
+        value[key] = addReactivity(item, [value]);
+        console.log(`reactivity for ${key}: ${item}`);
+      }
+    }
+
+    return value;
   }
   console.log('return original due to it is already Proxy', value);
   return value;
@@ -632,37 +728,16 @@ export function getNodeInjectable(
         console.log((def as ComponentDef<any>).changeDetection);
         if ((def as ComponentDef<any>).changeDetection === ChangeDetectionStrategy.Reactivity) {
           console.log(Object.keys(value));
-          const handler = {  // Override data to have a proxy in the middle
-            get(obj: any, key: any) {
-              console.log('get ', key);
-              if (key !== PROXY_INDICATOR) {
-                return obj[key]; // call original data
-              }
-              return true;
-            },
-            set(obj: any, key: any, newVal: any) {
-              console.log('start set ', key, lView[FLAGS], obj[MONKEY_PATCH_KEY_NAME] ? obj[MONKEY_PATCH_KEY_NAME][FLAGS] : null);
-              if (key !== MONKEY_PATCH_KEY_NAME) {
-                if (key === PROXY_INDICATOR) {
-                  throw Error(PROXY_INDICATOR + ' is reserved and can not be set. ');
-                }
-                if (typeof newVal === 'object') {
-                  console.log('new val is object');
-                  obj[key] = addReactivity(newVal, handler);
-                } else {
-                  obj[key] = newVal; // Set original data to new value
-                }
-                // markDirty(value);
-                void markViewDirty(getComponentViewByInstance(value));
-              } else {
-                obj[key] = newVal; // Set original data to new value
-              }
-              console.log(lView[FLAGS], value[MONKEY_PATCH_KEY_NAME][FLAGS]);
-              return true;
-            }
-          };
-          value['data'] = addReactivity(value['data'], handler);
-          value = lView[index] = addReactivityWatcher(value, handler, (def as ComponentDef<any>).reactiveProperties);
+
+          let reactiveProperties = (def as ComponentDef<any>).reactiveProperties;
+          if (!reactiveProperties) {
+            reactiveProperties = ['data'];
+          }
+          // add data to reactive properties if they are not already included
+          if (!reactiveProperties.includes('data')) {
+            reactiveProperties.push('data');
+          }
+          value = lView[index] = addReactivityWatcher(value, reactiveProperties);
         }
       }
       // This code path is hit for both directives and providers.

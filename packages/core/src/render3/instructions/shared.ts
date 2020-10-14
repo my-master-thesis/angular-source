@@ -1060,7 +1060,7 @@ export function elementPropertyInternal<T>(
   let inputData = tNode.inputs;
   let dataValue: PropertyAliasValue|undefined;
   if (!nativeOnly && inputData != null && (dataValue = inputData[propName])) {
-    console.log(tView, lView, dataValue, propName, value);
+    // console.log(tView, lView, dataValue, propName, value);
     setInputsForProperty(tView, lView, dataValue, propName, value);
     if (isComponentHost(tNode)) markDirtyIfOnPush(lView, index + HEADER_OFFSET);
     if (ngDevMode) {
@@ -1869,7 +1869,7 @@ export function addToViewTree<T extends LView|LContainer>(lView: LView, lViewOrL
  */
 export function markViewDirty(lView: LView): LView|null {
   while (lView) {
-    console.log('markViewDirty');
+    // console.log('markViewDirty');
     lView[FLAGS] |= LViewFlags.Dirty;
     const parent = getLViewParent(lView);
     // Stop traversing up as soon as you find a root view that wasn't attached to any container
