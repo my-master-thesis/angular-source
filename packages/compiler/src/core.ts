@@ -61,6 +61,7 @@ export const createDirective =
 
 export interface Component extends Directive {
   changeDetection?: ChangeDetectionStrategy;
+  reactiveProperties?: string[];
   viewProviders?: Provider[];
   moduleId?: string;
   templateUrl?: string;
@@ -82,7 +83,8 @@ export enum ViewEncapsulation {
 
 export enum ChangeDetectionStrategy {
   OnPush = 0,
-  Default = 1
+  Default = 1,
+  Reactivity = 2,
 }
 
 export const createComponent = makeMetadataFactory<Component>(
@@ -268,6 +270,7 @@ export const enum QueryValueType {
 export const enum ViewFlags {
   None = 0,
   OnPush = 1 << 1,
+  Reactivity = 1 << 2,
 }
 
 export enum MissingTranslationStrategy {

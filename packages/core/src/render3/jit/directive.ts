@@ -78,6 +78,7 @@ export function compileComponent(type: Type<any>, metadata: Component): void {
           animations: metadata.animations,
           directives: [],
           changeDetection: metadata.changeDetection,
+          reactiveProperties: metadata.reactiveProperties,
           pipes: new Map(),
           encapsulation: metadata.encapsulation || ViewEncapsulation.Emulated,
           interpolation: metadata.interpolation,

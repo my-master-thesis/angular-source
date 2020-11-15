@@ -27,6 +27,8 @@ export enum ChangeDetectionStrategy {
    * explicitly deactivated.
    */
   Default = 1,
+  /* fourth */
+  Reactivity = 2
 }
 
 /**

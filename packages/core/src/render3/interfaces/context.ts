@@ -16,6 +16,15 @@ import {LView} from './view';
 export const MONKEY_PATCH_KEY_NAME = '__ngContext__';
 
 /**
+ * This properties will be monkey-patched on Proxy
+ */
+export const PROXY_INDICATOR = '__isProxy__';
+export const NOT_LOST_PROXY_INDICATOR = '__isRealProxy__';
+export const SET_PROXY_INDICATOR = '__setProxy__';
+export const REMOVE_PROXY_INDICATOR = '__removeProxy__';
+export const REACTIVE_PROPERTIES_INDICATOR = '__reactiveProperties__';
+
+/**
  * The internal view context which is specific to a given DOM element, directive or
  * component instance. Each value in here (besides the LView and element node details)
  * can be present, null or undefined. If undefined then it implies the value has not been

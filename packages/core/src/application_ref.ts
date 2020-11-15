@@ -677,15 +677,21 @@ export class ApplicationRef {
     }
 
     try {
+      console.time('tick');
       this._runningTick = true;
       for (let view of this._views) {
+        // console.time('first tick');
         view.detectChanges();
+        // console.timeEnd('first tick');
       }
       if (this._enforceNoNewChanges) {
         for (let view of this._views) {
+          // console.time('second tick');
           view.checkNoChanges();
+          // console.timeEnd('second tick');
         }
       }
+      console.timeEnd('tick');
     } catch (e) {
       // Attention: Don't rethrow as it could cancel subscriptions to Observables!
       this._zone.runOutsideAngular(() => this._exceptionHandler.handleError(e));

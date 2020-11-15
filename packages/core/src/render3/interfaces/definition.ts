@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {SchemaMetadata, ViewEncapsulation} from '../../core';
+import {ChangeDetectionStrategy, SchemaMetadata, ViewEncapsulation} from '../../core';
 import {ProcessProvidersFunction} from '../../di/interface/provider';
 import {Type} from '../../interface/type';
 
@@ -320,6 +320,12 @@ export interface ComponentDef<T> extends DirectiveDef<T> {
 
   /** Whether or not this component's ChangeDetectionStrategy is OnPush */
   readonly onPush: boolean;
+
+  /** Component's ChangeDetectionStrategy */
+  readonly changeDetection: ChangeDetectionStrategy;
+
+  /** Component's reactive properties */
+  readonly reactiveProperties: Array<string>;
 
   /**
    * Registry of directives and components that may be found in this view.

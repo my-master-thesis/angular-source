@@ -38,6 +38,8 @@ const COPY_COMPONENT_FIELDS: Exclude<keyof ComponentDef<unknown>, keyof Directiv
   'consts',
   'vars',
   'onPush',
+  'changeDetection',
+  'reactiveProperties',
   'ngContentSelectors',
 
   // The child class should use the CSS styles of its parent, including all styling semantics.

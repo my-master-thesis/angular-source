@@ -19,17 +19,54 @@ import {assertDirectiveDef} from './assert';
 import {getFactoryDef} from './definition';
 import {NG_ELEMENT_ID, NG_FACTORY_DEF} from './fields';
 import {registerPreOrderHooks} from './hooks';
-import {DirectiveDef, FactoryFn} from './interfaces/definition';
-import {NO_PARENT_INJECTOR, NodeInjectorFactory, PARENT_INJECTOR, RelativeInjectorLocation, RelativeInjectorLocationFlags, TNODE, isFactory} from './interfaces/injector';
-import {AttributeMarker, TContainerNode, TDirectiveHostNode, TElementContainerNode, TElementNode, TNode, TNodeProviderIndexes, TNodeType} from './interfaces/node';
+import {ComponentDef, DirectiveDef, FactoryFn} from './interfaces/definition';
+import {
+  isFactory,
+  NO_PARENT_INJECTOR,
+  NodeInjectorFactory,
+  PARENT_INJECTOR,
+  RelativeInjectorLocation,
+  RelativeInjectorLocationFlags,
+  TNODE
+} from './interfaces/injector';
+import {
+  AttributeMarker,
+  TContainerNode,
+  TDirectiveHostNode,
+  TElementContainerNode,
+  TElementNode,
+  TNode,
+  TNodeProviderIndexes,
+  TNodeType
+} from './interfaces/node';
 import {isComponentDef, isComponentHost} from './interfaces/type_checks';
-import {DECLARATION_COMPONENT_VIEW, DECLARATION_VIEW, INJECTOR, LView, TData, TVIEW, TView, T_HOST} from './interfaces/view';
+import {
+  DECLARATION_COMPONENT_VIEW,
+  DECLARATION_VIEW,
+  FLAGS,
+  HOST,
+  INJECTOR,
+  LView, LViewFlags,
+  T_HOST,
+  TData,
+  TVIEW,
+  TView
+} from './interfaces/view';
 import {assertNodeOfPossibleTypes} from './node_assert';
 import {enterDI, leaveDI} from './state';
 import {isNameOnlyAttributeMarker} from './util/attrs_utils';
 import {getParentInjectorIndex, getParentInjectorView, hasParentInjector} from './util/injector_utils';
 import {stringifyForError} from './util/misc_utils';
-
+import {ChangeDetectionStrategy} from '../core';
+import {markDirty} from "./instructions/change_detection";
+import {
+  MONKEY_PATCH_KEY_NAME, NOT_LOST_PROXY_INDICATOR,
+  PROXY_INDICATOR, REACTIVE_PROPERTIES_INDICATOR,
+  REMOVE_PROXY_INDICATOR,
+  SET_PROXY_INDICATOR
+} from "./interfaces/context";
+import {markViewDirty} from "./instructions/shared";
+import {getComponentViewByInstance} from "./context_discovery";
 
 
 /**
@@ -519,6 +556,221 @@ export function locateDirectiveOrProvider<T>(
   return null;
 }
 
+function setProxyIndicator(value: any, components: any[]) {
+  Object.defineProperty(value, PROXY_INDICATOR, {
+    enumerable: false,
+    writable: true
+  });
+  value[PROXY_INDICATOR] = components;
+}
+
+export function addReactivity(value: any, components: any[]): any {
+  // check if value is not null object
+  if (typeof value === 'object' && !!value) {
+    // walk through all object properties and add them reactivity if they are not null objects
+    for (const [key, item] of Object.entries(value)) {
+      if (typeof item === 'object' && item) {
+        value[key] = addReactivity(item, [...components]);
+      }
+    }
+    if (!value[PROXY_INDICATOR]) {
+      setProxyIndicator(value, components);
+      return new Proxy(value, handler);
+    } else if (!value[NOT_LOST_PROXY_INDICATOR]) {
+      const result = new Proxy(value, handler);
+      result[SET_PROXY_INDICATOR] = components;
+      // console.log('add reactivity to lost Proxy');
+      return result;
+    } else {
+      value[SET_PROXY_INDICATOR] = components;
+      // console.log('add reactivity to existing Proxy', value, components);
+    }
+  }
+  // console.log('return original due to it is not an object', value);
+  return value;
+}
+
+// skip Dirty and InitPhaseStateMask components
+function markComponentDirty(component: any) {
+  if (component[MONKEY_PATCH_KEY_NAME] &&
+    !(component[MONKEY_PATCH_KEY_NAME][FLAGS] & (LViewFlags.Dirty | LViewFlags.InitPhaseStateMask))
+  ) {
+    void markViewDirty(getComponentViewByInstance(component));
+  }
+}
+
+function markComponentsDirty(components: any[]) {
+  components.forEach((component: any) => {
+    // markDirty(component);
+    markComponentDirty(component);
+  });
+}
+
+// Proxy handler for ractivity
+const handler: ProxyHandler<any> = {  // Override data to have a proxy in the middle
+  get(obj: any, key: PropertyKey) {
+    // console.log('get ', key);
+    // prevent getting reserved keys
+    if (key === SET_PROXY_INDICATOR || key === REMOVE_PROXY_INDICATOR) {
+      throw Error(SET_PROXY_INDICATOR + ' and ' + REMOVE_PROXY_INDICATOR + ' are reserved and can not be gotten.');
+    }
+    // define that this is real proxy and not just prop
+    if (key === NOT_LOST_PROXY_INDICATOR) {
+      return true;
+    }
+    if (typeof obj[key] === "function")
+      return obj[key].bind(obj);
+    return obj[key]; // call original data
+  },
+  set(obj: any, key: PropertyKey, newVal: any): boolean {
+    // console.log('start set ', key, obj[MONKEY_PATCH_KEY_NAME] ? obj[MONKEY_PATCH_KEY_NAME][FLAGS] : null);
+    // skip if setting Angular params
+    if (key !== MONKEY_PATCH_KEY_NAME) {
+      // set empty components array to Proxy if not exists
+      if (!obj[PROXY_INDICATOR]) {
+        setProxyIndicator(obj, []);
+      }
+      let markDirty = false;
+
+      if (key === PROXY_INDICATOR || key === NOT_LOST_PROXY_INDICATOR) {
+        throw Error(PROXY_INDICATOR + 'and' + NOT_LOST_PROXY_INDICATOR + ' are reserved and can not be set.');
+      } else if (key === SET_PROXY_INDICATOR) { // if we setting new components to existing reactivity
+        if (Array.isArray(newVal)) { // input param must be array
+          // removed due to now we delete destroyed component onDestroy
+          // obj[PROXY_INDICATOR].forEach((item: any, index: number) => {
+          //   const lView = getComponentViewByInstance(item);
+          //   if (lView[FLAGS] & LViewFlags.Destroyed) {
+          //     console.log('destroyed component', item, index);
+          //     spliceComponentAndChildren(obj, newVal, index);
+          //   }
+          // });
+          newVal.forEach(component => { // walk through all components and check if they are not already added for watching
+            if (! obj[PROXY_INDICATOR].includes(component)) {
+              obj[PROXY_INDICATOR].push(component);
+              // console.log('add reactivity', key, component);
+            }
+            // else {
+            //   console.error('wont add duplicated reactivity', key, component, obj[PROXY_INDICATOR]);
+            // }
+          });
+        } else {
+          throw Error(PROXY_INDICATOR + ' must be an array.');
+        }
+        return true;
+      } else if (key === REMOVE_PROXY_INDICATOR) { // if we remove reactivity from component
+        const index = obj[PROXY_INDICATOR].indexOf(newVal);
+        if (index >= 0) {
+          obj[PROXY_INDICATOR].splice(index, 1);
+          Object.keys(obj).forEach(key => {
+            if (typeof obj[key] === 'object' && obj[key]) {
+              if (obj[key][NOT_LOST_PROXY_INDICATOR]) {
+                obj[key][REMOVE_PROXY_INDICATOR] = newVal;
+              } else if (obj[key] ) { // if not null
+                console.error('It is object but it is not a proxy!');
+              }
+            }
+          });
+        } else {
+          console.error('cannot remove not existed reactivity', key, newVal, obj[PROXY_INDICATOR]);
+        }
+        return true;
+      } else if (typeof newVal === 'object' && !!newVal) { // if new value is an object than add reactivity to its props
+        // console.log('new val is object');
+        obj[key] = addReactivity(newVal, [...obj[PROXY_INDICATOR]]);
+        markDirty = true;
+      } else { // else just set the value
+        obj[key] = newVal; // Set original data to new value
+        markDirty = true;
+      }
+      if (markDirty) {
+        // mark all components as dirty
+        markComponentsDirty(obj[PROXY_INDICATOR]);
+      }
+    } else {
+      obj[key] = newVal; // Set original data to new value
+    }
+    return true;
+  }
+};
+
+function addReactivityWatcherProxy(value: any, reactiveProperties: Array<string>) {
+  if (!value[PROXY_INDICATOR]) {
+    const watcherHandler = {
+      get(obj: any, key: any) {
+        if (typeof obj[key] === "function")
+          return obj[key].bind(obj);
+        return obj[key]; // call original data
+      },
+      set(obj: any, key: any, newVal: any) {
+        // console.log('start class set ', key);
+        if (reactiveProperties.includes(key) && key !== MONKEY_PATCH_KEY_NAME) {
+          if (typeof newVal !== 'object' || !value) {
+            obj[key] = newVal;
+            if (value && value[MONKEY_PATCH_KEY_NAME]) {
+              markComponentDirty(value);
+            }
+          } else {
+            obj[key] = addReactivity(newVal, [value]);
+          }
+        } else {
+          obj[key] = newVal;
+        }
+        return true;
+      }
+    };
+    value = new Proxy(value, watcherHandler);
+
+    // must be after value, so we have right proxy component
+    for (const [key, item] of Object.entries(value)) {
+      if (reactiveProperties.includes(key)) {
+        value[key] = addReactivity(item, [value]);
+        // console.log(`reactivity for ${key}: ${item}`);
+      }
+    }
+
+    return value;
+  }
+  console.log('return original due to it is already Proxy', value);
+  return value;
+}
+
+function addReactivityWatcher(value: any, reactiveProperties: Array<string>) {
+  for (const key of reactiveProperties) {
+    // par of this function code is made up with help of Vue source
+    let property = Object.getOwnPropertyDescriptor(value, key);
+    if (property && property.configurable === false) {
+      return
+    } else if (!property) {
+      property = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(value), key);
+    }
+
+    // cater for pre-defined getter/setters
+    const getter = property && property.get;
+    const setter = property && property.set;
+    let internalValue = addReactivity(value[key], [value]);
+    Object.defineProperty(value, key, {
+      enumerable: true,
+      configurable: true,
+      get() {
+        return getter ? getter.call(value) : internalValue;;
+      },
+      set(newVal) {
+        const oldValue = getter ? getter.call(value) : internalValue;
+        if (newVal === oldValue) {
+          return;
+        }
+        if (setter) {
+          setter.call(value, addReactivity(newVal, [value]));
+        } else {
+          internalValue = addReactivity(newVal, [value]);
+        }
+        markComponentDirty(value);
+      }
+    });
+  }
+  return value;
+}
+
 /**
 * Retrieve or instantiate the injectable from the `LView` at particular `index`.
 *
@@ -544,6 +796,27 @@ export function getNodeInjectable(
     enterDI(lView, tNode);
     try {
       value = lView[index] = factory.factory(undefined, tData, lView, tNode);
+      // console.log('Component created 1', value.constructor.name, lView[HOST], lView[FLAGS]);
+      const def = tView.data[index] as DirectiveDef<any>;
+      const isComponent = isComponentDef(def);
+
+      if (isComponent) {
+        // console.log((def as ComponentDef<any>).changeDetection);
+        if ((def as ComponentDef<any>).changeDetection === ChangeDetectionStrategy.Reactivity) {
+          // console.log(Object.keys(value));
+
+          let reactiveProperties = (def as ComponentDef<any>).reactiveProperties;
+          if (!reactiveProperties) {
+            reactiveProperties = ['data'];
+          }
+          // add data to reactive properties if they are not already included
+          if (!reactiveProperties.includes('data')) {
+            reactiveProperties.push('data');
+          }
+          value[REACTIVE_PROPERTIES_INDICATOR] = reactiveProperties;
+          value = lView[index] = addReactivityWatcher(value, reactiveProperties);
+        }
+      }
       // This code path is hit for both directives and providers.
       // For perf reasons, we want to avoid searching for hooks on providers.
       // It does no harm to try (the hooks just won't exist), but the extra
@@ -552,6 +825,7 @@ export function getNodeInjectable(
       // tNode. If it's not, we know it's a provider and skip hook registration.
       if (tView.firstCreatePass && index >= tNode.directiveStart) {
         ngDevMode && assertDirectiveDef(tData[index]);
+        // console.log('Component created 2');
         registerPreOrderHooks(index, tData[index] as DirectiveDef<any>, tView);
       }
     } finally {

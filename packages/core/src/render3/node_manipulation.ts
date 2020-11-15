@@ -19,10 +19,34 @@ import {TElementNode, TNode, TNodeFlags, TNodeType, TProjectionNode, TViewNode, 
 import {unusedValueExportToPlacateAjd as unused3} from './interfaces/projection';
 import {ProceduralRenderer3, RElement, RNode, RText, Renderer3, isProceduralRenderer, unusedValueExportToPlacateAjd as unused4} from './interfaces/renderer';
 import {isLContainer, isLView} from './interfaces/type_checks';
-import {CHILD_HEAD, CLEANUP, DECLARATION_COMPONENT_VIEW, DECLARATION_LCONTAINER, FLAGS, HOST, HookData, LView, LViewFlags, NEXT, PARENT, QUERIES, RENDERER, TVIEW, TView, T_HOST, unusedValueExportToPlacateAjd as unused5} from './interfaces/view';
+import {
+  CHILD_HEAD,
+  CLEANUP,
+  DECLARATION_COMPONENT_VIEW,
+  DECLARATION_LCONTAINER,
+  FLAGS,
+  HOST,
+  HookData,
+  LView,
+  LViewFlags,
+  NEXT,
+  PARENT,
+  QUERIES,
+  RENDERER,
+  TVIEW,
+  TView,
+  T_HOST,
+  unusedValueExportToPlacateAjd as unused5,
+  CONTEXT
+} from './interfaces/view';
 import {assertNodeOfPossibleTypes, assertNodeType} from './node_assert';
 import {getLViewParent} from './util/view_traversal_utils';
 import {getNativeByTNode, unwrapRNode} from './util/view_utils';
+import {
+  NOT_LOST_PROXY_INDICATOR,
+  REACTIVE_PROPERTIES_INDICATOR,
+  REMOVE_PROXY_INDICATOR
+} from "@angular/core/src/render3/interfaces/context";
 
 const unusedValueToPlacateAjd = unused1 + unused2 + unused3 + unused4 + unused5;
 
@@ -272,6 +296,7 @@ function trackMovedView(declarationContainer: LContainer, lView: LView) {
   const insertedComponentIsOnPush =
       (insertedComponentLView[FLAGS] & LViewFlags.CheckAlways) !== LViewFlags.CheckAlways;
   if (insertedComponentIsOnPush) {
+    // console.log('insertedComponentIsOnPush', insertedComponentIsOnPush);
     const declaredComponentLView = lView[DECLARATION_COMPONENT_VIEW];
     ngDevMode && assertDefined(declaredComponentLView, 'Missing declaredComponentLView');
     if (declaredComponentLView !== insertedComponentLView) {
@@ -425,6 +450,22 @@ function cleanUpView(tView: TView, lView: LView): void {
     if (hostTNode && hostTNode.type === TNodeType.Element &&
         isProceduralRenderer(lView[RENDERER])) {
       ngDevMode && ngDevMode.rendererDestroy++;
+      const component = lView[CONTEXT] as any;
+      const proxies = component && component[REACTIVE_PROPERTIES_INDICATOR] ? component[REACTIVE_PROPERTIES_INDICATOR] : [];
+      for(const proxyKey of proxies){
+        if (typeof component[proxyKey] === 'object') {
+          // console.log('is object!!!', component[proxyKey][NOT_LOST_PROXY_INDICATOR]);
+          if (component[proxyKey][NOT_LOST_PROXY_INDICATOR]) {
+            component[proxyKey][REMOVE_PROXY_INDICATOR] = component;
+          }
+        }
+        Object.defineProperty(component, proxyKey, {
+          set: undefined,
+          get: undefined,
+        });
+        delete component[proxyKey];
+      }
+      // console.log('delete proxy', lView[CONTEXT], proxies);
       (lView[RENDERER] as ProceduralRenderer3).destroy();
     }
 

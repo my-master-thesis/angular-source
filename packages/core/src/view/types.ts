@@ -99,6 +99,7 @@ export interface ViewHandleEventFn {
 export const enum ViewFlags {
   None = 0,
   OnPush = 1 << 1,
+  Reactivity = 1 << 2,
 }
 
 /**

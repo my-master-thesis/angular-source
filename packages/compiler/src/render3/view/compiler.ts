@@ -251,6 +251,13 @@ export function compileComponentFromMetadata(
     definitionMap.set('changeDetection', o.literal(changeDetection));
   }
 
+  // Only set reactiveProperties flag if it's reactivity defined.
+  if (changeDetection != null && changeDetection === core.ChangeDetectionStrategy.Reactivity && meta.reactiveProperties) {
+    // definitionMap.set('reactiveProperties', o.literal(meta.reactiveProperties));
+    const strings = meta.reactiveProperties.map(str => o.literal(str));
+    definitionMap.set('reactiveProperties', o.literalArr(strings));
+  }
+
   const expression = o.importExpr(R3.defineComponent).callFn([definitionMap.toLiteralMap()]);
   const type = createTypeForDef(meta, R3.ComponentDefWithMeta);
 

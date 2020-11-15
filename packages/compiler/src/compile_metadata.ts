@@ -276,6 +276,7 @@ export interface CompileDirectiveSummary extends CompileTypeSummary {
   viewQueries: CompileQueryMetadata[];
   entryComponents: CompileEntryComponentMetadata[];
   changeDetection: ChangeDetectionStrategy|null;
+  reactiveProperties: string[]|null;
   template: CompileTemplateSummary|null;
   componentViewType: StaticSymbol|ProxyClass|null;
   rendererType: StaticSymbol|object|null;
@@ -286,7 +287,7 @@ export interface CompileDirectiveSummary extends CompileTypeSummary {
  * Metadata regarding compilation of a directive.
  */
 export class CompileDirectiveMetadata {
-  static create({isHost, type, isComponent, selector, exportAs, changeDetection, inputs, outputs,
+  static create({isHost, type, isComponent, selector, exportAs, changeDetection, reactiveProperties, inputs, outputs,
                  host, providers, viewProviders, queries, guards, viewQueries, entryComponents,
                  template, componentViewType, rendererType, componentFactory}: {
     isHost: boolean,
@@ -295,6 +296,7 @@ export class CompileDirectiveMetadata {
     selector: string|null,
     exportAs: string|null,
     changeDetection: ChangeDetectionStrategy|null,
+    reactiveProperties: string[];
     inputs: string[],
     outputs: string[],
     host: {[key: string]: string},
@@ -347,7 +349,7 @@ export class CompileDirectiveMetadata {
     return new CompileDirectiveMetadata({
       isHost,
       type,
-      isComponent: !!isComponent, selector, exportAs, changeDetection,
+      isComponent: !!isComponent, selector, exportAs, changeDetection, reactiveProperties,
       inputs: inputsMap,
       outputs: outputsMap,
       hostListeners,
@@ -371,6 +373,7 @@ export class CompileDirectiveMetadata {
   selector: string|null;
   exportAs: string|null;
   changeDetection: ChangeDetectionStrategy|null;
+  reactiveProperties: string[]|null;
   inputs: {[key: string]: string};
   outputs: {[key: string]: string};
   hostListeners: {[key: string]: string};
@@ -395,6 +398,7 @@ export class CompileDirectiveMetadata {
                selector,
                exportAs,
                changeDetection,
+               reactiveProperties,
                inputs,
                outputs,
                hostListeners,
@@ -416,6 +420,7 @@ export class CompileDirectiveMetadata {
     selector: string|null,
     exportAs: string|null,
     changeDetection: ChangeDetectionStrategy|null,
+    reactiveProperties: string[]|null;
     inputs: {[key: string]: string},
     outputs: {[key: string]: string},
     hostListeners: {[key: string]: string},
@@ -438,6 +443,7 @@ export class CompileDirectiveMetadata {
     this.selector = selector;
     this.exportAs = exportAs;
     this.changeDetection = changeDetection;
+    this.reactiveProperties = reactiveProperties;
     this.inputs = inputs;
     this.outputs = outputs;
     this.hostListeners = hostListeners;
@@ -475,6 +481,7 @@ export class CompileDirectiveMetadata {
       viewQueries: this.viewQueries,
       entryComponents: this.entryComponents,
       changeDetection: this.changeDetection,
+      reactiveProperties: this.reactiveProperties,
       template: this.template && this.template.toSummary(),
       componentViewType: this.componentViewType,
       rendererType: this.rendererType,

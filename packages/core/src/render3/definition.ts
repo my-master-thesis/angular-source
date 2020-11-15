@@ -17,7 +17,21 @@ import {stringify} from '../util/stringify';
 
 import {EMPTY_ARRAY, EMPTY_OBJ} from './empty';
 import {NG_COMP_DEF, NG_DIR_DEF, NG_FACTORY_DEF, NG_LOC_ID_DEF, NG_MOD_DEF, NG_PIPE_DEF} from './fields';
-import {ComponentDef, ComponentDefFeature, ComponentTemplate, ComponentType, ContentQueriesFunction, DirectiveDef, DirectiveDefFeature, DirectiveTypesOrFactory, FactoryFn, HostBindingsFunction, PipeDef, PipeType, PipeTypesOrFactory, ViewQueriesFunction} from './interfaces/definition';
+import {
+  ComponentDef,
+  ComponentDefFeature,
+  ComponentTemplate,
+  ComponentType,
+  ContentQueriesFunction,
+  DirectiveDef,
+  DirectiveDefFeature,
+  DirectiveTypesOrFactory,
+  FactoryFn,
+  HostBindingsFunction,
+  PipeDef,
+  PipeTypesOrFactory,
+  ViewQueriesFunction
+} from './interfaces/definition';
 import {AttributeMarker, TAttributes, TConstants} from './interfaces/node';
 import {CssSelectorList, SelectorFlags} from './interfaces/projection';
 import {NgModuleType} from './ng_module_ref';
@@ -269,6 +283,11 @@ export function ɵɵdefineComponent<T>(componentDefinition: {
   changeDetection?: ChangeDetectionStrategy;
 
   /**
+   * When reactivity set, takes effect also on this properties of component
+   */
+  reactiveProperties?: string[];
+
+  /**
    * Registry of directives and components that may be found in this component's view.
    *
    * The property is either an array of `DirectiveDef`s or a function which returns the array of
@@ -321,7 +340,9 @@ export function ɵɵdefineComponent<T>(componentDefinition: {
     afterViewInit: typePrototype.ngAfterViewInit || null,
     afterViewChecked: typePrototype.ngAfterViewChecked || null,
     onDestroy: typePrototype.ngOnDestroy || null,
-    onPush: componentDefinition.changeDetection === ChangeDetectionStrategy.OnPush,
+    onPush: componentDefinition.changeDetection === ChangeDetectionStrategy.OnPush || componentDefinition.changeDetection === ChangeDetectionStrategy.Reactivity,
+    changeDetection: typeof componentDefinition.changeDetection === 'number' ? componentDefinition.changeDetection : ChangeDetectionStrategy.Default,
+    reactiveProperties: !!componentDefinition.reactiveProperties ? componentDefinition.reactiveProperties : [],
     directiveDefs: null !,  // assigned in noSideEffects
     pipeDefs: null !,       // assigned in noSideEffects
     selectors: componentDefinition.selectors || EMPTY_ARRAY,

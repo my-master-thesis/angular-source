@@ -33,6 +33,7 @@ import {elementPropertyInternal, setInputsForProperty, storePropertyBindingMetad
  */
 export function ɵɵproperty<T>(
     propName: string, value: T, sanitizer?: SanitizerFn | null): typeof ɵɵproperty {
+  // console.log(propName, value, sanitizer);
   const lView = getLView();
   const bindingIndex = nextBindingIndex();
   if (bindingUpdated(lView, bindingIndex, value)) {

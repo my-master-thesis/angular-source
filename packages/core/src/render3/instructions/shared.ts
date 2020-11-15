@@ -11,7 +11,16 @@ import {CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA, SchemaMetadata} from '../../me
 import {ViewEncapsulation} from '../../metadata/view';
 import {validateAgainstEventAttributes, validateAgainstEventProperties} from '../../sanitization/sanitization';
 import {Sanitizer} from '../../sanitization/sanitizer';
-import {assertDataInRange, assertDefined, assertDomNode, assertEqual, assertGreaterThan, assertNotEqual, assertNotSame, assertSame} from '../../util/assert';
+import {
+  assertDataInRange,
+  assertDefined,
+  assertDomNode,
+  assertEqual,
+  assertGreaterThan,
+  assertNotEqual,
+  assertNotSame,
+  assertSame
+} from '../../util/assert';
 import {createNamedArrayType} from '../../util/named_array_type';
 import {initNgDevMode} from '../../util/ng_dev_mode';
 import {normalizeDebugBindingName, normalizeDebugBindingValue} from '../../util/ng_reflect';
@@ -22,26 +31,125 @@ import {diPublicInInjector, getNodeInjectable, getOrCreateNodeInjectorForNode} f
 import {throwMultipleComponentError} from '../errors';
 import {executeCheckHooks, executeInitAndCheckHooks, incrementInitPhaseFlags} from '../hooks';
 import {ACTIVE_INDEX, ActiveIndexFlag, CONTAINER_HEADER_OFFSET, LContainer, MOVED_VIEWS} from '../interfaces/container';
-import {ComponentDef, ComponentTemplate, DirectiveDef, DirectiveDefListOrFactory, PipeDefListOrFactory, RenderFlags, ViewQueriesFunction} from '../interfaces/definition';
+import {
+  ComponentDef,
+  ComponentTemplate,
+  DirectiveDef,
+  DirectiveDefListOrFactory,
+  PipeDefListOrFactory,
+  RenderFlags,
+  ViewQueriesFunction
+} from '../interfaces/definition';
 import {INJECTOR_BLOOM_PARENT_SIZE, NodeInjectorFactory} from '../interfaces/injector';
-import {AttributeMarker, InitialInputData, InitialInputs, LocalRefExtractor, PropertyAliasValue, PropertyAliases, TAttributes, TConstants, TContainerNode, TDirectiveHostNode, TElementContainerNode, TElementNode, TIcuContainerNode, TNode, TNodeFlags, TNodeProviderIndexes, TNodeType, TProjectionNode, TViewNode} from '../interfaces/node';
-import {RComment, RElement, RNode, RText, Renderer3, RendererFactory3, isProceduralRenderer} from '../interfaces/renderer';
+import {
+  AttributeMarker,
+  InitialInputData,
+  InitialInputs,
+  LocalRefExtractor,
+  PropertyAliases,
+  PropertyAliasValue,
+  TAttributes,
+  TConstants,
+  TContainerNode,
+  TDirectiveHostNode,
+  TElementContainerNode,
+  TElementNode,
+  TIcuContainerNode,
+  TNode,
+  TNodeFlags,
+  TNodeProviderIndexes,
+  TNodeType,
+  TProjectionNode,
+  TViewNode
+} from '../interfaces/node';
+import {
+  isProceduralRenderer,
+  RComment,
+  RElement,
+  Renderer3,
+  RendererFactory3,
+  RNode,
+  RText
+} from '../interfaces/renderer';
 import {SanitizerFn} from '../interfaces/sanitization';
 import {isComponentDef, isComponentHost, isContentQueryHost, isLContainer, isRootView} from '../interfaces/type_checks';
-import {CHILD_HEAD, CHILD_TAIL, CLEANUP, CONTEXT, DECLARATION_COMPONENT_VIEW, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, INJECTOR, InitPhaseState, LView, LViewFlags, NEXT, PARENT, RENDERER, RENDERER_FACTORY, RootContext, RootContextFlags, SANITIZER, TData, TVIEW, TView, TViewType, T_HOST} from '../interfaces/view';
+import {
+  CHILD_HEAD,
+  CHILD_TAIL,
+  CLEANUP,
+  CONTEXT,
+  DECLARATION_COMPONENT_VIEW,
+  DECLARATION_VIEW,
+  FLAGS,
+  HEADER_OFFSET,
+  HOST,
+  InitPhaseState,
+  INJECTOR,
+  LView,
+  LViewFlags,
+  NEXT,
+  PARENT,
+  RENDERER,
+  RENDERER_FACTORY,
+  RootContext,
+  RootContextFlags,
+  SANITIZER,
+  T_HOST,
+  TData,
+  TVIEW,
+  TView,
+  TViewType
+} from '../interfaces/view';
 import {assertNodeOfPossibleTypes} from '../node_assert';
 import {isNodeMatchingSelectorList} from '../node_selector_matcher';
-import {enterView, getBindingsEnabled, getCheckNoChangesMode, getIsParent, getPreviousOrParentTNode, getSelectedIndex, getTView, leaveView, setBindingIndex, setBindingRootForHostBindings, setCheckNoChangesMode, setCurrentQueryIndex, setPreviousOrParentTNode, setSelectedIndex} from '../state';
+import {
+  enterView,
+  getBindingsEnabled,
+  getCheckNoChangesMode,
+  getIsParent,
+  getPreviousOrParentTNode,
+  getSelectedIndex,
+  leaveView,
+  setBindingIndex,
+  setBindingRootForHostBindings,
+  setCheckNoChangesMode,
+  setCurrentQueryIndex,
+  setPreviousOrParentTNode,
+  setSelectedIndex
+} from '../state';
 import {NO_CHANGE} from '../tokens';
 import {isAnimationProp, mergeHostAttrs} from '../util/attrs_utils';
 import {INTERPOLATION_DELIMITER, renderStringify, stringifyForError} from '../util/misc_utils';
 import {getLViewParent} from '../util/view_traversal_utils';
-import {getComponentLViewByIndex, getNativeByIndex, getNativeByTNode, getTNode, isCreationMode, readPatchedLView, resetPreOrderHookFlags, unwrapLView, viewAttachedToChangeDetector} from '../util/view_utils';
+import {
+  getComponentLViewByIndex,
+  getNativeByIndex,
+  getNativeByTNode,
+  getTNode,
+  isCreationMode,
+  readPatchedLView,
+  resetPreOrderHookFlags,
+  unwrapLView,
+  viewAttachedToChangeDetector
+} from '../util/view_utils';
 
 import {selectIndexInternal} from './advance';
-import {LCleanup, LViewBlueprint, MatchesArray, TCleanup, TNodeDebug, TNodeInitialInputs, TNodeLocalNames, TViewComponents, TViewConstructor, attachLContainerDebug, attachLViewDebug, cloneToLViewFromTViewBlueprint, cloneToTViewData} from './lview_debug';
-
-
+import {
+  attachLContainerDebug,
+  attachLViewDebug,
+  cloneToLViewFromTViewBlueprint,
+  cloneToTViewData,
+  LCleanup,
+  LViewBlueprint,
+  MatchesArray,
+  TCleanup,
+  TNodeDebug,
+  TNodeInitialInputs,
+  TNodeLocalNames,
+  TViewComponents,
+  TViewConstructor
+} from './lview_debug';
+import {ChangeDetectionStrategy} from '../../core';
 
 /**
  * A permanent marker promise which signifies that the current CD tree is
@@ -390,6 +498,7 @@ export function renderView<T>(tView: TView, lView: LView, context: T): void {
  */
 export function refreshView<T>(
     tView: TView, lView: LView, templateFn: ComponentTemplate<{}>| null, context: T) {
+  // console.log('refreshView', lView[HOST], lView[FLAGS]);
   ngDevMode && assertEqual(isCreationMode(lView), false, 'Should be run in update mode');
   const flags = lView[FLAGS];
   if ((flags & LViewFlags.Destroyed) === LViewFlags.Destroyed) return;
@@ -417,6 +526,7 @@ export function refreshView<T>(
       } else {
         const preOrderHooks = tView.preOrderHooks;
         if (preOrderHooks !== null) {
+          // console.log('INIT :)');
           executeInitAndCheckHooks(lView, preOrderHooks, InitPhaseState.OnInitHooksToBeRun, null);
         }
         incrementInitPhaseFlags(lView, InitPhaseState.OnInitHooksToBeRun);
@@ -950,6 +1060,7 @@ export function elementPropertyInternal<T>(
   let inputData = tNode.inputs;
   let dataValue: PropertyAliasValue|undefined;
   if (!nativeOnly && inputData != null && (dataValue = inputData[propName])) {
+    // console.log(tView, lView, dataValue, propName, value);
     setInputsForProperty(tView, lView, dataValue, propName, value);
     if (isComponentHost(tNode)) markDirtyIfOnPush(lView, index + HEADER_OFFSET);
     if (ngDevMode) {
@@ -992,6 +1103,7 @@ function markDirtyIfOnPush(lView: LView, viewIndex: number): void {
   ngDevMode && assertLView(lView);
   const childComponentLView = getComponentLViewByIndex(viewIndex, lView);
   if (!(childComponentLView[FLAGS] & LViewFlags.CheckAlways)) {
+    // console.log('markDirtyIfOnPush', childComponentLView[FLAGS], childComponentLView[FLAGS]  | LViewFlags.Dirty);
     childComponentLView[FLAGS] |= LViewFlags.Dirty;
   }
 }
@@ -1426,10 +1538,11 @@ function addComponentLogic<T>(lView: LView, hostTNode: TElementNode, def: Compon
   // Only component views should be added to the view tree directly. Embedded views are
   // accessed through their containers because they may be removed / re-added later.
   const rendererFactory = lView[RENDERER_FACTORY];
+  // console.log('componentView', def.onPush, def.changeDetection, LViewFlags.Dirty, LViewFlags.CheckAlways);
   const componentView = addToViewTree(
       lView,
       createLView(
-          lView, tView, null, def.onPush ? LViewFlags.Dirty : LViewFlags.CheckAlways, native,
+          lView, tView, null, def.changeDetection !== ChangeDetectionStrategy.Default ? LViewFlags.Dirty : LViewFlags.CheckAlways, native,
           hostTNode as TElementNode, rendererFactory, rendererFactory.createRenderer(native, def)));
 
   // Component view will always be created before any injected LContainers,
@@ -1641,6 +1754,7 @@ function refreshTransplantedViews(lContainer: LContainer, declaredComponentLView
       const insertionComponentIsOnPush =
           (insertedComponentLView[FLAGS] & LViewFlags.CheckAlways) === 0;
       if (insertionComponentIsOnPush) {
+        // console.log('2 insertedComponentIsOnPush', insertionComponentIsOnPush);
         // Here we know that the template has been transplanted across components and is
         // on-push (not just moved within a component). If the insertion is marked dirty, then
         // there is no need to CD here as we will do it again later when we get to insertion
@@ -1755,6 +1869,7 @@ export function addToViewTree<T extends LView|LContainer>(lView: LView, lViewOrL
  */
 export function markViewDirty(lView: LView): LView|null {
   while (lView) {
+    // console.log('markViewDirty');
     lView[FLAGS] |= LViewFlags.Dirty;
     const parent = getLViewParent(lView);
     // Stop traversing up as soon as you find a root view that wasn't attached to any container

@@ -466,6 +466,11 @@ export interface Component extends Directive {
   changeDetection?: ChangeDetectionStrategy;
 
   /**
+   * When reactivity set, takes effect also on this properties of component
+   */
+  reactiveProperties?: string[];
+
+  /**
    * Defines the set of injectable objects that are visible to its view DOM children.
    * See [example](#injecting-a-class-with-a-view-provider).
    *
@@ -562,7 +567,7 @@ export interface Component extends Directive {
  * @publicApi
  */
 export const Component: ComponentDecorator = makeDecorator(
-    'Component', (c: Component = {}) => ({changeDetection: ChangeDetectionStrategy.Default, ...c}),
+    'Component', (c: Component = {}) => ({changeDetection: ChangeDetectionStrategy.Default, reactiveProperties: [], ...c}),
     Directive, undefined,
     (type: Type<any>, meta: Component) => SWITCH_COMPILE_COMPONENT(type, meta));
 

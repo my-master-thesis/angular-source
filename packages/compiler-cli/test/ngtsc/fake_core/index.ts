@@ -76,7 +76,8 @@ export enum ViewEncapsulation {
 
 export enum ChangeDetectionStrategy {
   OnPush = 0,
-  Default = 1
+  Default = 1,
+  Other= 2,
 }
 
 export const CUSTOM_ELEMENTS_SCHEMA: any = false;
