@@ -526,7 +526,7 @@ export function refreshView<T>(
       } else {
         const preOrderHooks = tView.preOrderHooks;
         if (preOrderHooks !== null) {
-          console.log('INIT :)');
+          // console.log('INIT :)');
           executeInitAndCheckHooks(lView, preOrderHooks, InitPhaseState.OnInitHooksToBeRun, null);
         }
         incrementInitPhaseFlags(lView, InitPhaseState.OnInitHooksToBeRun);
@@ -1103,7 +1103,7 @@ function markDirtyIfOnPush(lView: LView, viewIndex: number): void {
   ngDevMode && assertLView(lView);
   const childComponentLView = getComponentLViewByIndex(viewIndex, lView);
   if (!(childComponentLView[FLAGS] & LViewFlags.CheckAlways)) {
-    console.log('markDirtyIfOnPush', childComponentLView[FLAGS], childComponentLView[FLAGS]  | LViewFlags.Dirty);
+    // console.log('markDirtyIfOnPush', childComponentLView[FLAGS], childComponentLView[FLAGS]  | LViewFlags.Dirty);
     childComponentLView[FLAGS] |= LViewFlags.Dirty;
   }
 }
@@ -1538,7 +1538,7 @@ function addComponentLogic<T>(lView: LView, hostTNode: TElementNode, def: Compon
   // Only component views should be added to the view tree directly. Embedded views are
   // accessed through their containers because they may be removed / re-added later.
   const rendererFactory = lView[RENDERER_FACTORY];
-  console.log('componentView', def.onPush, def.changeDetection, LViewFlags.Dirty, LViewFlags.CheckAlways);
+  // console.log('componentView', def.onPush, def.changeDetection, LViewFlags.Dirty, LViewFlags.CheckAlways);
   const componentView = addToViewTree(
       lView,
       createLView(
@@ -1754,7 +1754,7 @@ function refreshTransplantedViews(lContainer: LContainer, declaredComponentLView
       const insertionComponentIsOnPush =
           (insertedComponentLView[FLAGS] & LViewFlags.CheckAlways) === 0;
       if (insertionComponentIsOnPush) {
-        console.log('2 insertedComponentIsOnPush', insertionComponentIsOnPush);
+        // console.log('2 insertedComponentIsOnPush', insertionComponentIsOnPush);
         // Here we know that the template has been transplanted across components and is
         // on-push (not just moved within a component). If the insertion is marked dirty, then
         // there is no need to CD here as we will do it again later when we get to insertion

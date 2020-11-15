@@ -376,11 +376,11 @@ export function checkAndUpdateView(view: ViewData) {
       view, NodeFlags.AfterViewChecked | (callInit ? NodeFlags.AfterViewInit : 0));
 
   if (view.def.flags & ViewFlags.OnPush) {
-    console.log('OP view');
+    // console.log('OP view');
     view.state &= ~ViewState.ChecksEnabled;
   }
   if (view.def.flags & ViewFlags.Reactivity) {
-    console.log('Other view');
+    // console.log('Other view');
     view.state &= ~ViewState.ChecksEnabled;
   }
   view.state &= ~(ViewState.CheckProjectedViews | ViewState.CheckProjectedView);

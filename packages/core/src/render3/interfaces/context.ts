@@ -19,8 +19,10 @@ export const MONKEY_PATCH_KEY_NAME = '__ngContext__';
  * This properties will be monkey-patched on Proxy
  */
 export const PROXY_INDICATOR = '__isProxy__';
+export const NOT_LOST_PROXY_INDICATOR = '__isRealProxy__';
 export const SET_PROXY_INDICATOR = '__setProxy__';
 export const REMOVE_PROXY_INDICATOR = '__removeProxy__';
+export const REACTIVE_PROPERTIES_INDICATOR = '__reactiveProperties__';
 
 /**
  * The internal view context which is specific to a given DOM element, directive or

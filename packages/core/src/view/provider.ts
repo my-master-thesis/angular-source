@@ -437,7 +437,7 @@ function updateProp(
   if (def.flags & NodeFlags.Component) {
     const compView = asElementData(view, def.parent !.nodeIndex).componentView;
     if (compView.def.flags & ViewFlags.OnPush) {
-      console.log('OP providers');
+      // console.log('OP providers');
       compView.state |= ViewState.ChecksEnabled;
     }
   }
