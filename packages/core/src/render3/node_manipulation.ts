@@ -450,7 +450,6 @@ function cleanUpView(tView: TView, lView: LView): void {
     if (hostTNode && hostTNode.type === TNodeType.Element &&
         isProceduralRenderer(lView[RENDERER])) {
       ngDevMode && ngDevMode.rendererDestroy++;
-      // todo delete proxy
       const component = lView[CONTEXT] as any;
       const proxies = component && component[REACTIVE_PROPERTIES_INDICATOR] ? component[REACTIVE_PROPERTIES_INDICATOR] : [];
       for(const proxyKey of proxies){
